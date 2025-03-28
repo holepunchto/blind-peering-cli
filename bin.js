@@ -108,7 +108,6 @@ const seedCmd = command('seed',
             return
           }
 
-          console.log('res', res)
           nrResolved++
           console.info(`Successfully contacted seeder (successes: ${nrResolved}, failures: ${nrRejected})`)
           if (nrResolved >= min) {
