@@ -1,0 +1,29 @@
+{
+  "name": "blind-peering-cli",
+  "version": "0.0.0",
+  "description": "CLI for blind-peering",
+  "main": "index.js",
+  "scripts": {
+    "test": "standard"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/holepunchto/blind-peering-cli.git"
+  },
+  "keywords": [
+    "blind",
+    "peering",
+    "blind",
+    "peer",
+    "CLI"
+  ],
+  "author": "Holepunch",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/holepunchto/blind-peering-cli/issues"
+  },
+  "homepage": "https://github.com/holepunchto/blind-peering-cli#readme",
+  "devDependencies": {
+    "standard": "^17.1.2"
+  }
+}
