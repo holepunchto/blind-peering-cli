@@ -1,5 +1,5 @@
 {
-  "name": "blind-peering-cli",
+  "name": "@holepunchto/blind-peering-cli",
   "version": "0.0.0",
   "description": "CLI for blind-peering",
   "main": "bin.js",

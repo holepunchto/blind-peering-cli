@@ -5,7 +5,7 @@ Command-line interface for blind-peer interactions.
 # Install
 
 ```
-npm i -g blind-peering-cli
+npm i -g @holepunchto/blind-peering-cli
 ```
 
 ## Usage
