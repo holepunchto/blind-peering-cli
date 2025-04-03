@@ -26,6 +26,9 @@
     "url": "https://github.com/holepunchto/blind-peering-cli/issues"
   },
   "homepage": "https://github.com/holepunchto/blind-peering-cli#readme",
+  "files": [
+    "bin.js"
+  ],
   "devDependencies": {
     "standard": "^17.1.2"
   },
