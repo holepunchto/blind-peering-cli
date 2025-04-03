@@ -10,6 +10,8 @@ npm i -g @holepunchto/blind-peering-cli
 
 ## Usage
 
+Currently only supports requesting to seed hyperdrives.
+
 ### Contact Multiple Blind Peers
 
 ```
