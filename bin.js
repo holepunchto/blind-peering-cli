@@ -204,6 +204,7 @@ const seedCmd = command('seed',
 
       // TODO: verify it was announced + verify it is downloaded
       logger.info(`Successfully requested to seed hyperdrive ${IdEnc.normalize(key)} with blobs core ${IdEnc.normalize(blobsKey)}`)
+      goodbye.exit()
     } catch (e) {
       console.error(e.message)
       goodbye.exit() // TODO: a way to signal non-zero exit code
