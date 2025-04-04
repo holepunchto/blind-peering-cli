@@ -121,19 +121,19 @@ const seedCmd = command('seed',
           drive.getBlobs().catch(safetyCatch)
         }
       })
-      const blobsKey = drive.blobs.key
+      const dbCore = drive.db.core
+      const blobsCore = drive.blobs.core
+      const blobsKey = blobsCore.key
 
       logger.info(`Requesting ${blindPeers.length} blind peers to seed core ${IdEnc.normalize(key)} and blobs core ${IdEnc.normalize(blobsKey)} (minimum successes: ${min})`)
 
       const blindPeerClient = new BlindPeerClient(swarm, store, { coreMirrors: blindPeers })
       const seedProms = []
       for (const b of blindPeers) {
-        const dbCore = drive.db.core.session()
-        const blobsCore = drive.blobs.core.session()
         seedProms.push(
           Promise.all([
-            blindPeerClient.addCore(dbCore, b, { announce: true }),
-            blindPeerClient.addCore(blobsCore, b, { announce: true })
+            blindPeerClient.addCore(dbCore.session(), b, { announce: true }),
+            blindPeerClient.addCore(dbCore.session(), b, { announce: true })
           ])
         )
       }
