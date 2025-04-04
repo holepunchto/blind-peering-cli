@@ -112,18 +112,7 @@ const seedCmd = command('seed',
 
       // TODO: should ideally live in the blind peer (detecting when it's a hyperdrive)
       logger.info('Obtaining the blobs key...')
-      const drive = new Hyperdrive(store.namespace('drive'), key)
-      await drive.ready()
-      await new Promise(resolve => {
-        if (drive.blobs) resolve()
-        else {
-          drive.once('blobs', resolve)
-          swarm.join(drive.discoveryKey)
-          drive.getBlobs().catch(safetyCatch)
-        }
-      })
-      const dbCore = drive.db.core
-      const blobsCore = drive.blobs.core
+      const [dbCore, blobsCore] = await getDbAndBlobs(store, key, swarm)
       const blobsKey = blobsCore.key
 
       logger.info(`Requesting ${blindPeers.length} blind peers to seed core ${IdEnc.normalize(key)} and blobs core ${IdEnc.normalize(blobsKey)} (minimum successes: ${min})`)
@@ -211,6 +200,21 @@ const seedCmd = command('seed',
     }
   }
 )
+
+async function getDbAndBlobs (store, key, swarm) {
+  const drive = new Hyperdrive(store.namespace('drive'), key)
+  await drive.ready()
+  await new Promise(resolve => {
+    if (drive.blobs) resolve()
+    else {
+      drive.once('blobs', resolve)
+      swarm.join(drive.discoveryKey)
+      drive.getBlobs().catch(safetyCatch)
+    }
+  })
+
+  return [drive.db.core, drive.blobs.core]
+}
 
 const cmd = command('blind-peering', seedCmd)
 cmd.parse()
