@@ -123,7 +123,7 @@ const seedCmd = command('seed',
         seedProms.push(
           Promise.all([
             blindPeerClient.addCore(dbCore.session(), b, { announce: true }),
-            blindPeerClient.addCore(dbCore.session(), b, { announce: true })
+            blindPeerClient.addCore(blobsCore.session(), b, { announce: true })
           ])
         )
       }
