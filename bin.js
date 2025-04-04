@@ -111,6 +111,7 @@ const seedCmd = command('seed',
       }
 
       // TODO: should ideally live in the blind peer (detecting when it's a hyperdrive)
+      logger.info('Obtaining the blobs key...')
       const drive = new Hyperdrive(store.namespace('drive'), key)
       await drive.ready()
       await new Promise(resolve => {
