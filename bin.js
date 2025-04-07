@@ -59,13 +59,7 @@ const seedCmd = command('seed',
       const storage = path.normalize(flags.storage || DEFAULT_STORAGE)
 
       logger.info(`Using storage ${storage}`)
-      const store = new Corestore(storage)
-      await store.ready()
-
-      // We need a consistent keypair across restarts, because we use
-      // an allow-list at the blind-peer side (to which our key should be added)
-      const keyPair = await store.createKeyPair('dht-client-identity')
-      const swarm = new Hyperswarm({ dht: new HyperDHT({ keyPair }) })
+      const { store, swarm } = await getStoreAndSwarm(storage)
       logger.info(`Using DHT public key: ${IdEnc.normalize(swarm.dht.defaultKeyPair.publicKey)}`)
 
       swarm.on('connection', (conn, peerInfo) => {
@@ -216,5 +210,17 @@ async function getDbAndBlobs (store, key, swarm) {
   return [drive.db.core, drive.blobs.core]
 }
 
-const cmd = command('blind-peering', seedCmd)
+async function getStoreAndSwarm (storage) {
+  const store = new Corestore(storage)
+  await store.ready()
+
+  // We need a consistent keypair across restarts, because we use
+  // an allow-list at the blind-peer side (to which our key should be added)
+  const keyPair = await store.createKeyPair('dht-client-identity')
+  const swarm = new Hyperswarm({ dht: new HyperDHT({ keyPair }) })
+
+  return { store, swarm }
+}
+
+const cmd = command('blind-peering', seedCmd) // , identityCmd)
 cmd.parse()
