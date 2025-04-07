@@ -7,7 +7,7 @@ const Hyperswarm = require('hyperswarm')
 const IdEnc = require('hypercore-id-encoding')
 const Corestore = require('corestore')
 const HyperDHT = require('hyperdht')
-const { command, flag, arg } = require('paparam')
+const { command, flag, arg, description } = require('paparam')
 const rrp = require('resolve-reject-promise')
 const safetyCatch = require('safety-catch')
 const Hyperdrive = require('hyperdrive')
@@ -23,6 +23,7 @@ const DEFAULT_STORAGE = path.join(path.normalize(os.homedir()), '.blind-peering-
 const DEFAULT_TIMEOUT_SEC = 15
 
 const seedCmd = command('seed',
+  description('Request a blind peer to keep a hyperdrive available'),
   arg('<key>', 'Hypercore key to seed'),
   flag('--auto-disc-db |-a [autoDiscDb]', 'Key of the autobase-discovery database to use'),
   flag('--service-name |-s [serviceName]', 'Service name whose instances to contact for the seed requests (as stored in the autobase-discovery database)'),
@@ -195,6 +196,25 @@ const seedCmd = command('seed',
   }
 )
 
+const identityCmd = command('identity',
+  flag('--storage|-s [path]', `Storage path. Defaults to ${DEFAULT_STORAGE}`),
+  description('Print your DHT public key'),
+  async function ({ args, flags }) {
+    const logger = console
+
+    const storage = path.normalize(flags.storage || DEFAULT_STORAGE)
+
+    logger.info(`Using storage ${storage}`)
+    const { store, swarm } = await getStoreAndSwarm(storage)
+    const ownKey = IdEnc.normalize(swarm.dht.defaultKeyPair.publicKey)
+    logger.info(`Your DHT public key is: ${ownKey}`)
+    logger.info(`To be able to send 'seed' requests to blind peers, ask them to add the '--trusted-peer ${ownKey}' flag when launching their blind peer instance`)
+
+    await swarm.destroy()
+    await store.close()
+  }
+)
+
 async function getDbAndBlobs (store, key, swarm) {
   const drive = new Hyperdrive(store.namespace('drive'), key)
   await drive.ready()
@@ -222,5 +242,5 @@ async function getStoreAndSwarm (storage) {
   return { store, swarm }
 }
 
-const cmd = command('blind-peering', seedCmd) // , identityCmd)
+const cmd = command('blind-peering', seedCmd, identityCmd)
 cmd.parse()
