@@ -48,7 +48,7 @@ const seedCmd = command('seed',
       })
 
       if (!flags.drive && !flags.core) {
-        logger.warn('Defaulting to --drive (deprecated behaviour, please specify either --drive or --core')
+        logger.warn('Defaulting to --drive (deprecated behaviour, please specify either --drive or --core)')
       }
       const isDrive = flags.drive || (!flags.core)
       const blindPeerKey = flags.blindPeerKey ? IdEnc.decode(flags.blindPeerKey) : null
