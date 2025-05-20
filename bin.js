@@ -161,8 +161,10 @@ const seedCmd = command('seed',
         const normBlindPeerKey = IdEnc.normalize(blindPeers[i])
 
         prom.then(
-          ([dbRes, blobsRes]) => {
+          (res) => {
+            const [[dbRes], [blobsRes]] = res
             if (done) return
+
             if (!dbRes) {
               processReject()
               logger.warn(`Could not request core from blind peer ${normBlindPeerKey}`)
