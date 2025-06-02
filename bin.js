@@ -13,7 +13,7 @@ const safetyCatch = require('safety-catch')
 const Hyperdrive = require('hyperdrive')
 const pino = require('pino')
 
-const BlindPeerClient = require('@holepunchto/blind-peering')
+const BlindPeerClient = require('blind-peering')
 const LookupClient = require('autobase-discovery/client/lookup.js')
 const goodbye = require('graceful-goodbye')
 
