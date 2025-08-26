@@ -13,7 +13,7 @@ const safetyCatch = require('safety-catch')
 const Hyperdrive = require('hyperdrive')
 const pino = require('pino')
 
-const BlindPeerClient = require('@holepunchto/blind-peering')
+const BlindPeerClient = require('blind-peering')
 const LookupClient = require('autobase-discovery/client/lookup.js')
 const goodbye = require('graceful-goodbye')
 
@@ -23,18 +23,18 @@ const DEFAULT_STORAGE = path.join(path.normalize(os.homedir()), '.blind-peering-
 const DEFAULT_TIMEOUT_SEC = 15
 
 const seedCmd = command('seed',
-  description('Request a blind peer to keep a hyperdrive available'),
-  arg('<key>', 'Hypercore key to seed'),
-  flag('--drive', 'Request to seed a hyperdrive (including its blobs core)'),
-  flag('--core', 'Request to seed a hypercore'),
+  description('Request a blind peer to keep hypercores and hyperdrive available'),
+  arg('<key>', 'Hypercore/Hyperdrive key to seed'),
+  flag('--storage|-s [path]', `Storage path. Defaults to ${DEFAULT_STORAGE}`),
+  flag('--drive', 'Set this flag to request to seed a hyperdrive (including its blobs core)'),
+  flag('--core', 'Set this flag to request to seed a hypercore'),
+  flag('--blind-peer-key|b [blindPeerKey]', 'Key of a blind peer. Can only be set if no auto-disc-db is used.'),
   flag('--auto-disc-db |-a [autoDiscDb]', 'Key of the autobase-discovery database to use'),
   flag('--service-name |-s [serviceName]', 'Service name whose instances to contact for the seed requests (as stored in the autobase-discovery database)'),
-  flag('--storage|-s [path]', `Storage path. Defaults to ${DEFAULT_STORAGE}`),
   flag('--limit|-l [limit]', `Maximum amount of instances to send a request to. Default ${DEFAULT_LIMIT}.`),
   flag('--min|-m [min]', `Minimum amount of instances to send a request to (will error if fewer can be reached). Default ${DEFAULT_MIN}`),
   flag('--timeout|-t [timeout]', `Timeout (in seconds) when connecting to a blind peer. Default: ${DEFAULT_TIMEOUT_SEC} seconds`),
   flag('--debug|-d', 'Enable debug logs'),
-  flag('--blind-peer-key|b [blindPeerKey]', 'Key of a blind peer. Can only be set if no auto-disc-db is used.'),
   async function ({ args, flags }) {
     try {
       const key = IdEnc.decode(args.key)
