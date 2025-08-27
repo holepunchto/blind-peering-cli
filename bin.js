@@ -133,8 +133,9 @@ const seedCmd = command('seed',
       msg += ` (minimum successes: ${min})`
       logger.info(msg)
 
-      const blindPeerClient = new BlindPeerClient(swarm, store, { coreMirrors: blindPeers })
+      const blindPeerClient = new BlindPeerClient(swarm, store, { coreMirrors: blindPeers, pick: 1 })
       const seedProms = []
+
       for (const b of blindPeers) {
         const proms = []
         for (const c of cores) {
@@ -162,7 +163,11 @@ const seedCmd = command('seed',
 
         prom.then(
           (res) => {
-            const [[dbRes], [blobsRes]] = res
+            const dbRes = res[0][0]
+            const blobsRes = res.length > 1
+              ? res[1][0]
+              : null // not a drive
+
             if (done) return
 
             if (!dbRes) {
