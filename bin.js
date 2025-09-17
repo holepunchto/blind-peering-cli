@@ -28,7 +28,7 @@ const seedCmd = command('seed',
   flag('--storage|-s [path]', `Storage path. Defaults to ${DEFAULT_STORAGE}`),
   flag('--drive', 'Set this flag to request to seed a hyperdrive (including its blobs core)'),
   flag('--core', 'Set this flag to request to seed a hypercore'),
-  flag('--blind-peer-key|b [blindPeerKey]', 'Key of a blind peer. Can only be set if no auto-disc-db is used.'),
+  flag('--blind-peer-key|b [blindPeerKey]', 'Key of a blind peer. Can only be set if no auto-disc-db is used.').multiple(),
   flag('--auto-disc-db |-a [autoDiscDb]', 'Key of the autobase-discovery database to use'),
   flag('--service-name |-s [serviceName]', 'Service name whose instances to contact for the seed requests (as stored in the autobase-discovery database)'),
   flag('--limit|-l [limit]', `Maximum amount of instances to send a request to. Default ${DEFAULT_LIMIT}.`),
@@ -51,18 +51,18 @@ const seedCmd = command('seed',
         logger.warn('Defaulting to --drive (deprecated behaviour, please specify either --drive or --core)')
       }
       const isDrive = flags.drive || (!flags.core)
-      const blindPeerKey = flags.blindPeerKey ? IdEnc.decode(flags.blindPeerKey) : null
+      const blindPeerKeys = flags.blindPeerKey ? flags.blindPeerKey.map(b => IdEnc.decode(b)) : null
 
-      if ((blindPeerKey && autoDiscDb) || (!blindPeerKey && !autoDiscDb)) {
+      if ((blindPeerKeys && autoDiscDb) || (!blindPeerKeys && !autoDiscDb)) {
         throw new Error('Must set exactly one of blind-peer-key and auto-disc-db')
       }
 
-      const min = blindPeerKey
-        ? 1
+      const min = blindPeerKeys
+        ? blindPeerKeys.length
         : parseInt(flags.min || DEFAULT_MIN)
 
-      const limit = blindPeerKey
-        ? 1
+      const limit = blindPeerKeys
+        ? blindPeerKeys.length
         : parseInt(flags.limit || DEFAULT_LIMIT)
       const msTimeout = parseInt(flags.timeout || DEFAULT_TIMEOUT_SEC) * 1000
       const storage = path.normalize(flags.storage || DEFAULT_STORAGE)
@@ -92,8 +92,8 @@ const seedCmd = command('seed',
       })
 
       const blindPeers = []
-      if (blindPeerKey) {
-        blindPeers.push(blindPeerKey)
+      if (blindPeerKeys) {
+        for (const b of blindPeerKeys) blindPeers.push(b)
       } else {
         logger.info(`Requesting up to ${limit} instances from the '${serviceName}' service, using autobase-discovery database ${IdEnc.normalize(autoDiscDb)}`)
         client = new LookupClient(
