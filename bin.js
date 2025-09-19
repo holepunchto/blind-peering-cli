@@ -231,11 +231,11 @@ const seedCmd = command('seed',
 
 const deleteCmd = command('delete',
   description('Request blind peers to delete a hyperdrive or hypercore'),
-  arg('<key>', 'Hypercore/Hyperdrive key to seed'),
+  arg('<key>', 'Hypercore/Hyperdrive key to delete'),
   flag('--storage|-s [path]', `Storage path. Defaults to ${DEFAULT_STORAGE}`),
   flag('--drive', 'Set this flag to request to delete a hyperdrive (including its blobs core)'),
   flag('--core', 'Set this flag to request to delete a hypercore'),
-  flag('--blind-peer|b [blindPeer]', 'Key of a blind peer').multiple(),
+  flag('--blind-peer|b [blindPeer]', 'Key of a blind peer (specify 1 or more)').multiple(),
   flag('--debug|-d', 'Enable debug logs'),
   async function ({ args, flags }) {
     const key = IdEnc.decode(args.key)
@@ -302,7 +302,7 @@ const deleteCmd = command('delete',
     }
 
     {
-      let msg = `Requesting ${blindPeers.length} blind peers to seed core ${IdEnc.normalize(key)}`
+      let msg = `Requesting ${blindPeers.length} blind peers to delete core ${IdEnc.normalize(key)}`
       if (isDrive) msg += ` and blobs core ${IdEnc.normalize(cores[1].key)}`
       logger.info(msg)
     }
