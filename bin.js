@@ -317,10 +317,11 @@ const deleteCmd = command('delete',
         if (debug) logger.debug(`Delete request completed for ${IdEnc.normalize(c.key)}. Existed? ${r}`)
       }
     } catch (e) {
-      console.error(e)
+      if (!e.cause) throw e
+      logger.error(`Error while contacting the blind peers: ${e.cause.message}`)
       goodbye.exit()
-      return
     }
+
     {
       let msg = `Successfully requested to delete ${isDrive ? 'hyperdrive' : 'hypercore'} ${IdEnc.normalize(key)}`
       if (blobsKey) msg += `with blobs core ${IdEnc.normalize(blobsKey)}`
