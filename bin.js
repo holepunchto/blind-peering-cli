@@ -229,6 +229,108 @@ const seedCmd = command('seed',
   }
 )
 
+const deleteCmd = command('delete',
+  description('Request blind peers to delete a hyperdrive or hypercore'),
+  arg('<key>', 'Hypercore/Hyperdrive key to delete'),
+  flag('--storage|-s [path]', `Storage path. Defaults to ${DEFAULT_STORAGE}`),
+  flag('--drive', 'Set this flag to request to delete a hyperdrive (including its blobs core)'),
+  flag('--core', 'Set this flag to request to delete a hypercore'),
+  flag('--blind-peer|b [blindPeer]', 'Key of a blind peer (specify 1 or more)').multiple(),
+  flag('--debug|-d', 'Enable debug logs'),
+  async function ({ args, flags }) {
+    const key = IdEnc.decode(args.key)
+    const { debug } = flags
+
+    const logger = pino({
+      level: debug ? 'debug' : 'info',
+      transport: {
+        target: 'pino-pretty'
+      }
+    })
+
+    if (!flags.drive && !flags.core) {
+      logger.error('You must specify either --drive or --core)')
+      process.exit(1)
+    }
+    const isDrive = flags.drive
+    if (!flags.blindPeer || flags.blindPeer.length === 0) {
+      console.error('Must specify at least 1 --blind-peer')
+      process.exit(1)
+    }
+    const blindPeers = flags.blindPeer.map(b => IdEnc.decode(b))
+
+    const storage = path.normalize(flags.storage || DEFAULT_STORAGE)
+
+    logger.info(`Using storage ${storage}`)
+    const { store, swarm } = await getStoreAndSwarm(storage)
+    logger.info(`Using DHT public key: ${IdEnc.normalize(swarm.dht.defaultKeyPair.publicKey)}`)
+
+    swarm.on('connection', (conn, peerInfo) => {
+      if (debug) {
+        const key = IdEnc.normalize(peerInfo.publicKey)
+        logger.debug(`Opened connection to ${key}`)
+        conn.on('close', () => logger.debug(`Closed connection to ${key}`))
+      }
+      store.replicate(conn)
+    })
+
+    let done = false
+    let client = null
+    goodbye(async () => {
+      if (!done) logger.info('Cancelling')
+      logger.info(done ? 'Shutting down...' : 'Cancelling...')
+      await swarm.destroy()
+      if (client) await client.close()
+      await store.close()
+    })
+
+    logger.info(`Using blind peers:\n  -${(blindPeers.map(p => IdEnc.normalize(p)).join('\n  -'))}`)
+
+    const cores = []
+    let blobsKey = null
+    if (isDrive) {
+      // TODO: should ideally live in the blind peer (detecting when it's a hyperdrive)
+      logger.info('Obtaining the blobs key...')
+      const [dbCore, blobsCore] = await getDbAndBlobs(store, key, swarm)
+      blobsKey = blobsCore.key
+      cores.push(dbCore)
+      cores.push(blobsCore)
+    } else {
+      const core = store.get({ key })
+      await core.ready()
+      cores.push(core)
+    }
+
+    {
+      let msg = `Requesting ${blindPeers.length} blind peers to delete core ${IdEnc.normalize(key)}`
+      if (isDrive) msg += ` and blobs core ${IdEnc.normalize(cores[1].key)}`
+      logger.info(msg)
+    }
+
+    client = new BlindPeerClient(swarm, store, { coreMirrors: blindPeers, pick: blindPeers.length })
+
+    try {
+      for (const c of cores) {
+        const r = await client.deleteCore(c.key)
+        if (debug) logger.debug(`Delete request completed for ${IdEnc.normalize(c.key)}. Existed? ${r}`)
+      }
+    } catch (e) {
+      if (!e.cause) throw e
+      logger.error(`Error while contacting the blind peers: ${e.cause.message}`)
+      goodbye.exit()
+    }
+
+    {
+      let msg = `Successfully requested to delete ${isDrive ? 'hyperdrive' : 'hypercore'} ${IdEnc.normalize(key)}`
+      if (blobsKey) msg += `with blobs core ${IdEnc.normalize(blobsKey)}`
+      logger.info(msg)
+    }
+
+    done = true
+    goodbye.exit()
+  }
+)
+
 const identityCmd = command('identity',
   flag('--storage|-s [path]', `Storage path. Defaults to ${DEFAULT_STORAGE}`),
   description('Print your DHT public key'),
@@ -275,5 +377,5 @@ async function getStoreAndSwarm (storage) {
   return { store, swarm }
 }
 
-const cmd = command('blind-peering', seedCmd, identityCmd)
+const cmd = command('blind-peering', seedCmd, deleteCmd, identityCmd)
 cmd.parse()
