@@ -309,11 +309,9 @@ const deleteCmd = command('delete',
 
     client = new BlindPeerClient(swarm, store, { coreMirrors: blindPeers, pick: blindPeers.length })
 
-    const res = []
     try {
       for (const c of cores) {
         const r = await client.deleteCore(c.key)
-        res.push(r)
         if (debug) logger.debug(`Delete request completed for ${IdEnc.normalize(c.key)}. Existed? ${r}`)
       }
     } catch (e) {
