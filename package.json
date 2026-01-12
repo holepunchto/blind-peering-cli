@@ -1,6 +1,6 @@
 {
   "name": "blind-peering-cli",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "CLI for blind-peering",
   "main": "bin.js",
   "scripts": {
