@@ -76,7 +76,8 @@ const seedCmd = command(
       const blindPeerKeys = flags.blindPeerKey
         ? flags.blindPeerKey.map((b) => IdEnc.decode(b))
         : null
-      const shouldAnnounce = !flags.noAnnounce
+
+      const shouldAnnounce = flags.announce
       if (!shouldAnnounce) {
         logger.info('Running in no-announce mode')
       }
