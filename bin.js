@@ -27,6 +27,7 @@ const seedCmd = command('seed',
   arg('<key>', 'Hypercore/Hyperdrive key to seed'),
   flag('--storage|-s [path]', `Storage path. Defaults to ${DEFAULT_STORAGE}`),
   flag('--drive', 'Set this flag to request to seed a hyperdrive (including its blobs core)'),
+  flag('--no-announce', 'Set this flag to disable announcing, so the blind peers will download the core/drive but will not announce it to the swarm'),
   flag('--core', 'Set this flag to request to seed a hypercore'),
   flag('--blind-peer-key|b [blindPeerKey]', 'Key of a blind peer. Can only be set if no auto-disc-db is used.').multiple(),
   flag('--auto-disc-db |-a [autoDiscDb]', 'Key of the autobase-discovery database to use'),
@@ -52,6 +53,10 @@ const seedCmd = command('seed',
       }
       const isDrive = flags.drive || (!flags.core)
       const blindPeerKeys = flags.blindPeerKey ? flags.blindPeerKey.map(b => IdEnc.decode(b)) : null
+      const shouldAnnounce = !flags.noAnnounce
+      if (!shouldAnnounce) {
+        logger.info('Running in no-announce mode')
+      }
 
       if ((blindPeerKeys && autoDiscDb) || (!blindPeerKeys && !autoDiscDb)) {
         throw new Error('Must set exactly one of blind-peer-key and auto-disc-db')
@@ -113,23 +118,22 @@ const seedCmd = command('seed',
         }
       }
 
-      const cores = []
-      let blobsKey = null
+      let seedCore = null
+      let blobsCore = null
       if (isDrive) {
         // TODO: should ideally live in the blind peer (detecting when it's a hyperdrive)
         logger.info('Obtaining the blobs key...')
-        const [dbCore, blobsCore] = await getDbAndBlobs(store, key, swarm)
-        blobsKey = blobsCore.key
-        cores.push(dbCore)
-        cores.push(blobsCore)
+        const cores = await getDbAndBlobs(store, key, swarm)
+        seedCore = cores[0]
+        blobsCore = cores[1]
       } else {
         const core = store.get({ key })
         await core.ready()
-        cores.push(core)
+        seedCore = core
       }
 
       let msg = `Requesting ${blindPeers.length} blind peers to seed core ${IdEnc.normalize(key)}`
-      if (isDrive) msg += ` and blobs core ${IdEnc.normalize(cores[1].key)}`
+      if (blobsCore) msg += ` and blobs core ${IdEnc.normalize(blobsCore.key)}`
       msg += ` (minimum successes: ${min})`
       logger.info(msg)
 
@@ -138,8 +142,9 @@ const seedCmd = command('seed',
 
       for (const b of blindPeers) {
         const proms = []
-        for (const c of cores) {
-          proms.push(blindPeerClient.addCore(c.session(), b, { announce: true }))
+        proms.push(blindPeerClient.addCore(seedCore.session(), b, { announce: shouldAnnounce }))
+        if (blobsCore) {
+          proms.push(blindPeerClient.addCore(blobsCore.session(), b, { announce: false }))
         }
         seedProms.push(Promise.all(proms))
       }
@@ -217,7 +222,7 @@ const seedCmd = command('seed',
       {
         // TODO: verify it was announced + verify it is downloaded
         let msg = `Successfully requested to seed ${isDrive ? 'hyperdrive' : 'hypercore'} ${IdEnc.normalize(key)}`
-        if (blobsKey) msg += `with blobs core ${IdEnc.normalize(blobsKey)}`
+        if (blobsCore) msg += `with blobs core ${IdEnc.normalize(blobsCore.key)}`
         logger.info(msg)
       }
 
