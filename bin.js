@@ -34,7 +34,7 @@ const seedCmd = command(
   ),
   flag('--core', 'Set this flag to request to seed a hypercore'),
   flag(
-    '--blind-peer-key|b [blindPeerKey]',
+    '--blind-peer-key|-b [blindPeerKey]',
     'Key of a blind peer. Can only be set if no auto-disc-db is used.'
   ).multiple(),
   flag('--auto-disc-db |-a [autoDiscDb]', 'Key of the autobase-discovery database to use'),
