@@ -4,7 +4,7 @@
   "description": "CLI for blind-peering",
   "main": "bin.js",
   "scripts": {
-    "test": "standard"
+    "test": "prettier --check ."
   },
   "bin": {
     "blind-peering": "bin.js"
@@ -30,11 +30,12 @@
   },
   "homepage": "https://github.com/holepunchto/blind-peering-cli#readme",
   "devDependencies": {
-    "standard": "^17.1.2"
+    "prettier": "^3.7.4",
+    "prettier-config-holepunch": "^2.0.0"
   },
   "dependencies": {
-    "blind-peering": "^1.12.0",
     "autobase-discovery": "^1.0.4",
+    "blind-peering": "^1.12.0",
     "corestore": "^7.0.23",
     "graceful-goodbye": "^1.3.3",
     "hypercore-id-encoding": "^1.3.0",

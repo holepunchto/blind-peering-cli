@@ -22,19 +22,38 @@ const DEFAULT_LIMIT = 6
 const DEFAULT_STORAGE = path.join(path.normalize(os.homedir()), '.blind-peering-cli-storage')
 const DEFAULT_TIMEOUT_SEC = 15
 
-const seedCmd = command('seed',
+const seedCmd = command(
+  'seed',
   description('Request a blind peer to keep hypercores and hyperdrive available'),
   arg('<key>', 'Hypercore/Hyperdrive key to seed'),
   flag('--storage|-s [path]', `Storage path. Defaults to ${DEFAULT_STORAGE}`),
   flag('--drive', 'Set this flag to request to seed a hyperdrive (including its blobs core)'),
-  flag('--no-announce', 'Set this flag to disable announcing, so the blind peers will download the core/drive but will not announce it to the swarm'),
+  flag(
+    '--no-announce',
+    'Set this flag to disable announcing, so the blind peers will download the core/drive but will not announce it to the swarm'
+  ),
   flag('--core', 'Set this flag to request to seed a hypercore'),
-  flag('--blind-peer-key|b [blindPeerKey]', 'Key of a blind peer. Can only be set if no auto-disc-db is used.').multiple(),
+  flag(
+    '--blind-peer-key|b [blindPeerKey]',
+    'Key of a blind peer. Can only be set if no auto-disc-db is used.'
+  ).multiple(),
   flag('--auto-disc-db |-a [autoDiscDb]', 'Key of the autobase-discovery database to use'),
-  flag('--service-name |-s [serviceName]', 'Service name whose instances to contact for the seed requests (as stored in the autobase-discovery database)'),
-  flag('--limit|-l [limit]', `Maximum amount of instances to send a request to. Default ${DEFAULT_LIMIT}.`),
-  flag('--min|-m [min]', `Minimum amount of instances to send a request to (will error if fewer can be reached). Default ${DEFAULT_MIN}`),
-  flag('--timeout|-t [timeout]', `Timeout (in seconds) when connecting to a blind peer. Default: ${DEFAULT_TIMEOUT_SEC} seconds`),
+  flag(
+    '--service-name |-s [serviceName]',
+    'Service name whose instances to contact for the seed requests (as stored in the autobase-discovery database)'
+  ),
+  flag(
+    '--limit|-l [limit]',
+    `Maximum amount of instances to send a request to. Default ${DEFAULT_LIMIT}.`
+  ),
+  flag(
+    '--min|-m [min]',
+    `Minimum amount of instances to send a request to (will error if fewer can be reached). Default ${DEFAULT_MIN}`
+  ),
+  flag(
+    '--timeout|-t [timeout]',
+    `Timeout (in seconds) when connecting to a blind peer. Default: ${DEFAULT_TIMEOUT_SEC} seconds`
+  ),
   flag('--debug|-d', 'Enable debug logs'),
   async function ({ args, flags }) {
     try {
@@ -49,10 +68,14 @@ const seedCmd = command('seed',
       })
 
       if (!flags.drive && !flags.core) {
-        logger.warn('Defaulting to --drive (deprecated behaviour, please specify either --drive or --core)')
+        logger.warn(
+          'Defaulting to --drive (deprecated behaviour, please specify either --drive or --core)'
+        )
       }
-      const isDrive = flags.drive || (!flags.core)
-      const blindPeerKeys = flags.blindPeerKey ? flags.blindPeerKey.map(b => IdEnc.decode(b)) : null
+      const isDrive = flags.drive || !flags.core
+      const blindPeerKeys = flags.blindPeerKey
+        ? flags.blindPeerKey.map((b) => IdEnc.decode(b))
+        : null
       const shouldAnnounce = !flags.noAnnounce
       if (!shouldAnnounce) {
         logger.info('Running in no-announce mode')
@@ -62,13 +85,9 @@ const seedCmd = command('seed',
         throw new Error('Must set exactly one of blind-peer-key and auto-disc-db')
       }
 
-      const min = blindPeerKeys
-        ? blindPeerKeys.length
-        : parseInt(flags.min || DEFAULT_MIN)
+      const min = blindPeerKeys ? blindPeerKeys.length : parseInt(flags.min || DEFAULT_MIN)
 
-      const limit = blindPeerKeys
-        ? blindPeerKeys.length
-        : parseInt(flags.limit || DEFAULT_LIMIT)
+      const limit = blindPeerKeys ? blindPeerKeys.length : parseInt(flags.limit || DEFAULT_LIMIT)
       const msTimeout = parseInt(flags.timeout || DEFAULT_TIMEOUT_SEC) * 1000
       const storage = path.normalize(flags.storage || DEFAULT_STORAGE)
 
@@ -100,20 +119,24 @@ const seedCmd = command('seed',
       if (blindPeerKeys) {
         for (const b of blindPeerKeys) blindPeers.push(b)
       } else {
-        logger.info(`Requesting up to ${limit} instances from the '${serviceName}' service, using autobase-discovery database ${IdEnc.normalize(autoDiscDb)}`)
-        client = new LookupClient(
-          autoDiscDb, swarm, store.namespace('autodiscovery-lookup')
+        logger.info(
+          `Requesting up to ${limit} instances from the '${serviceName}' service, using autobase-discovery database ${IdEnc.normalize(autoDiscDb)}`
         )
+        client = new LookupClient(autoDiscDb, swarm, store.namespace('autodiscovery-lookup'))
 
         await client.ready()
 
         for await (const { publicKey } of await client.list(serviceName, { limit })) {
           blindPeers.push(publicKey)
         }
-        logger.info(`Using blind peers:\n  -${(blindPeers.map(p => IdEnc.normalize(p)).join('\n  -'))}`)
+        logger.info(
+          `Using blind peers:\n  -${blindPeers.map((p) => IdEnc.normalize(p)).join('\n  -')}`
+        )
 
         if (blindPeers.length < min) {
-          logger.error(`Found only ${blindPeers.length} peers, whereas a minimum of ${min} was specified`)
+          logger.error(
+            `Found only ${blindPeers.length} peers, whereas a minimum of ${min} was specified`
+          )
           process.exit(1)
         }
       }
@@ -137,7 +160,10 @@ const seedCmd = command('seed',
       msg += ` (minimum successes: ${min})`
       logger.info(msg)
 
-      const blindPeerClient = new BlindPeerClient(swarm, store, { coreMirrors: blindPeers, pick: 1 })
+      const blindPeerClient = new BlindPeerClient(swarm, store, {
+        coreMirrors: blindPeers,
+        pick: 1
+      })
       const seedProms = []
 
       for (const b of blindPeers) {
@@ -151,7 +177,8 @@ const seedCmd = command('seed',
 
       const { resolve: resolveSeed, reject: rejectSeed, promise: seedProm } = rrp()
       seedTimeout = setTimeout(
-        () => rejectSeed(new Error(`Timeout: failed to request ${min} blind peers to seed the core`)),
+        () =>
+          rejectSeed(new Error(`Timeout: failed to request ${min} blind peers to seed the core`)),
         msTimeout
       )
 
@@ -159,7 +186,8 @@ const seedCmd = command('seed',
       let nrRejected = 0
       const processReject = () => {
         nrRejected++
-        if (nrRejected > blindPeers.length - min) rejectSeed(new Error(`Failed to request seeding at least ${min} blind peers`))
+        if (nrRejected > blindPeers.length - min)
+          rejectSeed(new Error(`Failed to request seeding at least ${min} blind peers`))
       }
 
       for (let i = 0; i < seedProms.length; i++) {
@@ -169,9 +197,7 @@ const seedCmd = command('seed',
         prom.then(
           (res) => {
             const dbRes = res[0][0]
-            const blobsRes = res.length > 1
-              ? res[1][0]
-              : null // not a drive
+            const blobsRes = res.length > 1 ? res[1][0] : null // not a drive
 
             if (done) return
 
@@ -181,7 +207,9 @@ const seedCmd = command('seed',
               return
             }
             if (dbRes.announce === false) {
-              logger.warn(`You are not a trusted peer for blind peer ${normBlindPeerKey} (announce was downgraded to false)`)
+              logger.warn(
+                `You are not a trusted peer for blind peer ${normBlindPeerKey} (announce was downgraded to false)`
+              )
               processReject()
               return
             }
@@ -192,15 +220,21 @@ const seedCmd = command('seed',
             }
 
             nrResolved++
-            logger.info(`Successfully contacted seeder ${normBlindPeerKey} (successes: ${nrResolved}, failures: ${nrRejected})`)
+            logger.info(
+              `Successfully contacted seeder ${normBlindPeerKey} (successes: ${nrResolved}, failures: ${nrRejected})`
+            )
             if (nrResolved >= min) {
               resolveSeed()
             }
           },
           (err) => {
             safetyCatch(err)
-            if (!done) logger.info(`Failed to contact seeder ${normBlindPeerKey} (successes: ${nrResolved}, failures: ${nrRejected})`)
-            if (debug) logger.warn(`Error while communicating with seeder ${normBlindPeerKey}: ${err.stack}`)
+            if (!done)
+              logger.info(
+                `Failed to contact seeder ${normBlindPeerKey} (successes: ${nrResolved}, failures: ${nrRejected})`
+              )
+            if (debug)
+              logger.warn(`Error while communicating with seeder ${normBlindPeerKey}: ${err.stack}`)
             processReject()
           }
         )
@@ -234,7 +268,8 @@ const seedCmd = command('seed',
   }
 )
 
-const deleteCmd = command('delete',
+const deleteCmd = command(
+  'delete',
   description('Request blind peers to delete a hyperdrive or hypercore'),
   arg('<key>', 'Hypercore/Hyperdrive key to delete'),
   flag('--storage|-s [path]', `Storage path. Defaults to ${DEFAULT_STORAGE}`),
@@ -262,7 +297,7 @@ const deleteCmd = command('delete',
       console.error('Must specify at least 1 --blind-peer')
       process.exit(1)
     }
-    const blindPeers = flags.blindPeer.map(b => IdEnc.decode(b))
+    const blindPeers = flags.blindPeer.map((b) => IdEnc.decode(b))
 
     const storage = path.normalize(flags.storage || DEFAULT_STORAGE)
 
@@ -289,7 +324,7 @@ const deleteCmd = command('delete',
       await store.close()
     })
 
-    logger.info(`Using blind peers:\n  -${(blindPeers.map(p => IdEnc.normalize(p)).join('\n  -'))}`)
+    logger.info(`Using blind peers:\n  -${blindPeers.map((p) => IdEnc.normalize(p)).join('\n  -')}`)
 
     const cores = []
     let blobsKey = null
@@ -317,7 +352,8 @@ const deleteCmd = command('delete',
     try {
       for (const c of cores) {
         const r = await client.deleteCore(c.key)
-        if (debug) logger.debug(`Delete request completed for ${IdEnc.normalize(c.key)}. Existed? ${r}`)
+        if (debug)
+          logger.debug(`Delete request completed for ${IdEnc.normalize(c.key)}. Existed? ${r}`)
       }
     } catch (e) {
       if (!e.cause) throw e
@@ -336,7 +372,8 @@ const deleteCmd = command('delete',
   }
 )
 
-const identityCmd = command('identity',
+const identityCmd = command(
+  'identity',
   flag('--storage|-s [path]', `Storage path. Defaults to ${DEFAULT_STORAGE}`),
   description('Print your DHT public key'),
   async function ({ args, flags }) {
@@ -348,17 +385,19 @@ const identityCmd = command('identity',
     const { store, swarm } = await getStoreAndSwarm(storage)
     const ownKey = IdEnc.normalize(swarm.dht.defaultKeyPair.publicKey)
     logger.info(`Your DHT public key is: ${ownKey}`)
-    logger.info(`To be able to send 'seed' requests to blind peers, ask them to add the '--trusted-peer ${ownKey}' flag when launching their blind peer instance`)
+    logger.info(
+      `To be able to send 'seed' requests to blind peers, ask them to add the '--trusted-peer ${ownKey}' flag when launching their blind peer instance`
+    )
 
     await swarm.destroy()
     await store.close()
   }
 )
 
-async function getDbAndBlobs (store, key, swarm) {
+async function getDbAndBlobs(store, key, swarm) {
   const drive = new Hyperdrive(store.namespace('drive'), key)
   await drive.ready()
-  await new Promise(resolve => {
+  await new Promise((resolve) => {
     if (drive.blobs) resolve()
     else {
       drive.once('blobs', resolve)
@@ -370,7 +409,7 @@ async function getDbAndBlobs (store, key, swarm) {
   return [drive.db.core, drive.blobs.core]
 }
 
-async function getStoreAndSwarm (storage) {
+async function getStoreAndSwarm(storage) {
   const store = new Corestore(storage)
   await store.ready()
 
