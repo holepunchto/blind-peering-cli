@@ -161,15 +161,15 @@ const seedCmd = command(
       msg += ` (minimum successes: ${min})`
       logger.info(msg)
 
-      const blindPeerClient = new BlindPeerClient(swarm, store, {
-        coreMirrors: blindPeers,
+      const blindPeerClient = new BlindPeerClient(swarm.dht, store, {
+        keys: blindPeers,
         pick: 1
       })
       const seedProms = []
 
       for (const b of blindPeers) {
         const proms = []
-        proms.push(blindPeerClient.addCore(seedCore.session(), b, { announce: shouldAnnounce }))
+        proms.push(blindPeerClient.addCore(seedCore.session(), { announce: shouldAnnounce }))
         if (blobsCore) {
           proms.push(blindPeerClient.addCore(blobsCore.session(), b, { announce: false }))
         }
@@ -196,7 +196,9 @@ const seedCmd = command(
         const normBlindPeerKey = IdEnc.normalize(blindPeers[i])
 
         prom.then(
-          (res) => {
+          async (res) => {
+            await new Promise(resolve => setTimeout(resolve, 20000))
+            console.log(res)
             const dbRes = res[0][0]
             const blobsRes = res.length > 1 ? res[1][0] : null // not a drive
 
@@ -208,6 +210,7 @@ const seedCmd = command(
               return
             }
             if (dbRes.announce === false) {
+              console.log(dbRes)
               logger.warn(
                 `You are not a trusted peer for blind peer ${normBlindPeerKey} (announce was downgraded to false)`
               )
@@ -348,7 +351,7 @@ const deleteCmd = command(
       logger.info(msg)
     }
 
-    client = new BlindPeerClient(swarm, store, { coreMirrors: blindPeers, pick: blindPeers.length })
+    client = new BlindPeerClient(swarm.dht, store, { keys: blindPeers, pick: blindPeers.length })
 
     try {
       for (const c of cores) {
